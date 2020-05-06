@@ -7,7 +7,9 @@
           db 8 dup(?)
     median_digit dw dup(0)
     median_digit_symbol db 7 dup('0')
-    start_msg db 10, 13, "Enter digit", 10, 13, '$'
+    get_digit_msg db 10, 13, "Enter digit", 10, 13, '$'
+    start_msg db 10, 13, "Number limit from -32768 to 32767", 10, 13, '$'
+    error_msg db 10, 13, "Error. Shutting down", 10, 13, '$'
     DIGIT_SYMBOL_LIMIT equ 5
     ARRAY_SIZE equ 5
     
@@ -16,7 +18,7 @@
         pusha
         cld
         out_start_msg:
-            mov dx, offset start_msg
+            mov dx, offset get_digit_msg
             mov ah, 0x9
             int 0x21
         get:
@@ -36,23 +38,23 @@
                 cmp al, bl
                 je negative_digit
                 cmp cx, DIGIT_SYMBOL_LIMIT
-                ja _exit
+                ja _error
                 jmp start_check
             negative_digit:
                 inc di
                 dec cx
                 cmp cx, DIGIT_SYMBOL_LIMIT
-                ja _exit
+                ja _error
                 jmp start_check
             start_check: 
                 xor bx, bx
                 mov bl, byte ptr[di] 
                 mov al, '0'
                 cmp al, bl
-                ja _exit
+                ja _error
                 mov al, '9'
                 cmp al, bl
-                jb _exit
+                jb _error
                 inc di
                 loop start_check        
         popa
@@ -87,8 +89,9 @@
                 start_converting:
                     mov bl, 10
                     mul bx
+                    jo _error
                     cmp ax, 0
-                    jl _exit
+                    jl _error
                     mov bl, byte ptr [di]
                     sub bl, '0'
                     add ax, bx
@@ -222,7 +225,9 @@ _start:
     mov ax, @data
     mov ds, ax
     mov es, ax
-               
+    mov dx, offset start_msg
+    mov ah, 0x9
+    int 0x21        
                
     mov di, offset median_digit_symbol
     mov [di+6], '$'           
@@ -239,8 +244,6 @@ _start:
     call bubble_sort
     call get_median
     call itoa
-    jmp _exit
-_exit:
     mov dl, 10;
     mov ah, 0x02;
     int 0x21
@@ -250,6 +253,12 @@ _exit:
     mov dx, offset median_digit_symbol
     mov ah, 0x9
     int 0x21
+    jmp _exit
+_error:
+    mov dx, offset error_msg
+    mov ah, 0x9
+    int 0x21
+_exit:
     mov ah, 0x4C
     int 0x21
     end _start
