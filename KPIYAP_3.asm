@@ -9,7 +9,8 @@
     median_digit_symbol db 7 dup('0')
     get_digit_msg db 10, 13, "Enter digit", 10, 13, '$'
     start_msg db 10, 13, "Number limit from -32768 to 32767", 10, 13, '$'
-    error_msg db 10, 13, "Error. Shutting down", 10, 13, '$'
+    error_get_msg db 10, 13, "Error. This is not a number/number too long", 10, 13, '$'
+    error_atoi_msg db 10, 13, "Error. Number is not within specified limits", 10, 13, '$'
     DIGIT_SYMBOL_LIMIT equ 5
     ARRAY_SIZE equ 5
     
@@ -17,7 +18,7 @@
     get_digit proc
         pusha
         cld
-        out_start_msg:
+        out_get_msg:
             mov dx, offset get_digit_msg
             mov ah, 0x9
             int 0x21
@@ -38,25 +39,32 @@
                 cmp al, bl
                 je negative_digit
                 cmp cx, DIGIT_SYMBOL_LIMIT
-                ja _error
+                ja error_get
                 jmp start_check
             negative_digit:
                 inc di
                 dec cx
                 cmp cx, DIGIT_SYMBOL_LIMIT
-                ja _error
+                ja error_get
                 jmp start_check
             start_check: 
                 xor bx, bx
                 mov bl, byte ptr[di] 
                 mov al, '0'
                 cmp al, bl
-                ja _error
+                ja error_get
                 mov al, '9'
                 cmp al, bl
-                jb _error
+                jb error_get
                 inc di
-                loop start_check        
+                loop start_check
+                jmp end_get
+            error_get:
+                mov dx, offset error_get_msg
+                mov ah, 0x9
+                int 0x21
+                jmp out_get_msg
+        end_get:  
         popa
         ret
     get_digit endp
@@ -75,7 +83,6 @@
                 xor ax, ax
                 xor bx, bx
                 mov cl, byte ptr[digit + 1]
-                jmp check_minus_exsistense
                 check_minus_exsistense:
                     mov al, '-'
                     cmp al, byte ptr[di]
@@ -89,9 +96,9 @@
                 start_converting:
                     mov bl, 10
                     mul bx
-                    jo _error
+                    jo error_atoi
                     cmp ax, 0
-                    jl _error
+                    jl error_atoi
                     mov bl, byte ptr [di]
                     sub bl, '0'
                     add ax, bx
@@ -104,13 +111,20 @@
                     cmp bl, byte ptr[di]
                     je set_negative
                     jmp set_digit
-                je set_negative
-                jmp set_digit
                 set_negative:
                     neg ax
                     jmp set_digit
                 set_digit:
                     mov word ptr[si], ax
+                    jmp end_atoi
+                error_atoi:
+                    mov dx, offset error_atoi_msg
+                    mov ah, 0x9
+                    int 0x21
+                    pop di
+                    call get_digit
+                    jmp convert_to_int
+        end_atoi:
         popa
         ret
     atoi endp
@@ -139,7 +153,7 @@
         add si, 2
         mov cx, ARRAY_SIZE
         dec cx
-        mov dx, ARRAY_SIZE*2+2
+        mov dx, ARRAY_SIZE*2
         _outer_loop:
             _inner_loop:
                  cmpsw
@@ -147,7 +161,6 @@
                  jmp _continue_inner_loop
                  swap_digits:
                     call swap
-                    jmp _continue_inner_loop
                  _continue_inner_loop:
                     sub di, 2
                     cmp si, dx
@@ -171,10 +184,9 @@
         xor bx, bx
         xor si, si
         mov si, offset array
-        add si, ARRAY_SIZE-1
+        add si, 4
         mov ax, word ptr[si]
         mov word ptr[median_digit], ax
-    _ret:
         popa
         ret
     get_median endp
@@ -203,9 +215,8 @@
             cmp ax, 0
             je _end_outer_loop_
             jmp _outer_loop_
-        
         _end_outer_loop_:
-        _negative:
+        _check_negative:
             mov ax, word ptr[si]
             cmp ax, cx
             jl _set_negative_
@@ -215,7 +226,6 @@
             jmp _ret_itoa
         _set_plus_:
             mov byte ptr[di], '+'
-            jmp _ret_itoa
         _ret_itoa:       
         popa
         ret
@@ -227,20 +237,19 @@ _start:
     mov es, ax
     mov dx, offset start_msg
     mov ah, 0x9
-    int 0x21        
-               
+    int 0x21               
     mov di, offset median_digit_symbol
     mov [di+6], '$'           
     xor dx, dx
     xor cx, cx
     mov dx, offset array
     mov cx, ARRAY_SIZE
-    initializate_array:
+    initialize_array:
         call get_digit
         push dx
         call atoi
         add dx, 2
-        loop initializate_array
+        loop initialize_array
     call bubble_sort
     call get_median
     call itoa
@@ -254,10 +263,6 @@ _start:
     mov ah, 0x9
     int 0x21
     jmp _exit
-_error:
-    mov dx, offset error_msg
-    mov ah, 0x9
-    int 0x21
 _exit:
     mov ah, 0x4C
     int 0x21
