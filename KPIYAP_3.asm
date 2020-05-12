@@ -96,27 +96,37 @@
                 start_converting:
                     mov bl, 10
                     mul bx
+                    jo error_atoi
                     mov bl, byte ptr [di]
                     sub bl, '0'
-                    add ax, bx
-                    jc error_atoi
-                    cmp ax, 0
-                    jl error_atoi
+                    add ax, bx     
+                    js remember_sf
                     inc di
                     loop start_converting
-                pop di
+                    jmp continue
+                remember_sf:
+                    mov dl, 1
+                continue:
+                    pop di
                 check_negative_digit:
                     xor bx, bx
                     mov bl, '-'
                     cmp bl, byte ptr[di]
                     je set_negative
+                    cmp dl, 1
+                    je error_atoi
                     jmp set_digit
                 set_negative:
+                    cmp dl, 1
+                    je check_low_border
                     neg ax
                     jmp set_digit
                 set_digit:
                     mov word ptr[si], ax
                     jmp end_atoi
+                check_low_border:
+                    cmp ax, 8000h
+                    je set_digit
                 error_atoi:
                     mov dx, offset error_atoi_msg
                     mov ah, 0x9
