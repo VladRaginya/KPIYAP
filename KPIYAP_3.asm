@@ -96,12 +96,12 @@
                 start_converting:
                     mov bl, 10
                     mul bx
-                    jo error_atoi
-                    cmp ax, 0
-                    jl error_atoi
                     mov bl, byte ptr [di]
                     sub bl, '0'
                     add ax, bx
+                    jc error_atoi
+                    cmp ax, 0
+                    jl error_atoi
                     inc di
                     loop start_converting
                 pop di
