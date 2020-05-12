@@ -96,7 +96,7 @@
                 start_converting:
                     mov bl, 10
                     mul bx
-                    jo error_atoi
+                    jo clear_stack
                     mov bl, byte ptr [di]
                     sub bl, '0'
                     add ax, bx     
@@ -127,11 +127,13 @@
                 check_low_border:
                     cmp ax, 8000h
                     je set_digit
+                    jmp error_atoi
+                clear_stack:
+                    pop di
                 error_atoi:
                     mov dx, offset error_atoi_msg
                     mov ah, 0x9
                     int 0x21
-                    pop di
                     call get_digit
                     jmp convert_to_int
         end_atoi:
