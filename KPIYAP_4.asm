@@ -68,7 +68,7 @@ winCount dw 0
 .code
 jmp main
   
-printScore proc near
+printScore proc
     pusha
     xor cx, cx    
     mov ax, score
@@ -98,13 +98,9 @@ printStack:
     ret   
 endp    
   
-initScreen proc near
-    push cx
-    push ax
-    push si
-    push ds  
-    push bx
-    push dx     
+initScreen proc
+    pusha
+    push ds   
     mov ax, 0b800h
     mov ds, ax 
         
@@ -198,22 +194,15 @@ glassBottomEnd:
     mov dh, 25
     mov ah, 02
     int 10h  
-    pop dx
-    pop bx
+    
     pop ds
-    pop si
-    pop ax
-    pop cx
+    popa
     ret
 endp
 
-initPlayField proc near
-    push cx
-    push bx
-    push ax  
+initPlayField proc
+    pusha 
     push es
-    push di
-    push si
       
     mov ax, ds
     mov es, ax
@@ -234,21 +223,16 @@ loop13:
     loop loop13
     mov ax, [bx]
     mov winCount, ax
-    pop si
-    pop di
+    
     pop es 
-    pop ax
-    pop bx
-    pop cx
+    popa
     ret
 endp
 
-displayPlayField proc near
-    push ax
+displayPlayField proc
+    pusha
     push es
-    push cx
-    push di
-    push si
+    
     mov ax, 0B800h
     mov es, ax
     mov cx, 19
@@ -264,16 +248,14 @@ loop2:
     add di, 36
     pop cx
     loop loop1
-    pop si
-    pop di
-    pop cx
+    
     pop es
-    pop ax
+    popa
     ret
 endp
         
 
-printLose proc near    
+printLose proc    
     push ds
     mov ax, 0b800h
     mov ds, ax
@@ -363,7 +345,7 @@ printLose proc near
     ret
 endp
 
-displayPaddle proc near       
+displayPaddle proc       
     push ds
     
     mov bx, offset paddlePosition
@@ -390,10 +372,8 @@ loop31:
     ret
 endp
 
-welcomeScreen proc near 
-    push ax
-    push bx 
-    push dx
+welcomeScreen proc 
+    pusha
     push ds    
     mov ax, 0B800h
     mov ds, ax
@@ -426,9 +406,7 @@ waitEnterWelcome:
     mov ah, 4Ch
     int 21h
 EnterWelcome:
-    pop dx
-    pop bx
-    pop ax      
+    popa     
     ret
 endp
 
@@ -510,10 +488,8 @@ moveEnd:
     ret
 endp
 
-displayBall proc near           
-    push ax
-    push bx
-    push cx
+displayBall proc           
+    pusha
     push ds     
     mov bx, offset ballPositionY
     mov ax, [bx]
@@ -530,13 +506,11 @@ displayBall proc near
     mov ds, ax
     mov [bx], 70h
     pop ds
-    pop cx
-    pop bx
-    pop ax
+    popa
     ret
 endp
 
-checkCollision proc near    
+checkCollision proc   
     push ax
     push bx
     push cx    
@@ -573,7 +547,7 @@ notCollision:
     ret
 endp
 
-paddleStart proc near
+paddleStart proc
     mov bx, offset paddlePosition
     mov ax, [bx]
     add ax, 2
@@ -623,10 +597,8 @@ noKeyPressed1:
     ret
 endp    
 
-printWin proc near   
-    push ax
-    push bx 
-    push dx
+printWin proc   
+    pusha
     push ds    
     xor bh, bh
     mov dh, 4
@@ -667,9 +639,7 @@ EnterWin:
     mov dh, 25
     mov ah, 02
     int 10h
-    pop dx
-    pop bx
-    pop ax      
+    popa      
     ret
 endp
 
