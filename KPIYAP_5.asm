@@ -36,7 +36,16 @@ endm
 stepBack macro
     mov ah, 42h
     mov al, 1
-    mov dx, -1
+    mov cx, 0
+    mov dx, 0
+    mov bx, fileid
+    int 21h
+    jc basicError
+    mov cx, dx
+    mov dx, ax
+    dec dx
+    mov ah, 42h
+    mov al, 0
     mov bx, fileid
     int 21h
     jc basicError
