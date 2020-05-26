@@ -31,10 +31,20 @@ outStr macro str
 	mov dl, 0Dh             
 	mov ah, 02h             
 	int 21h     
-endm    
-  
+endm
+
+stepBack macro
+    mov ah, 42h
+    mov al, 1
+    mov dx, -1
+    mov bx, fileid
+    int 21h
+    jc basicError
+endm
+ 
 readSymbol proc 
     pusha
+startReading:
     mov dx, offset symbol
     mov bx, fileid
     mov cx, 1
@@ -42,39 +52,57 @@ readSymbol proc
     int 21h
     cmp ax, 0
     je clearCall
-    cmp symbol, 0Ah
-    je lineEnded
-    ;cmp symbol, 0Dh
-    ;je lineEnded
-    ;cmp symbol, 0h
-    ;je lineEnded
     jmp endReading
 clearCall: 
-    call clear 
-lineEnded:
-    inc numOfCurrentLine
+    call clear
 endReading:  
     popa  
     ret
 readSymbol endp      
 
 findlLineBeg proc
-findLineBegLoop:   
+findLineBegStart:   
     call readSymbol
-    call writeInFile 
+    cmp symbol, 0Dh
+    je ifCR
+    cmp symbol, 0Ah
+    je lineEnded
+    cmp symbol, 0h
+    je lineEnded
+    jmp writeToFile  
+ifCR:
+    call writeInFile
+    inc numOfCurrentLine
+    call readSymbol
+    cmp symbol, 0Ah
+    jne goBack
+    jmp writeToFile
+lineEnded:
+    inc numOfCurrentLine
+writeToFile:
+    call writeInFile
+    jmp endFinding
+goBack:
+    stepBack
+endFinding:
     ret         
 findlLineBeg endp 
     
 skipLineProc proc
 skipLineProcBegin:
     call readSymbol
+    cmp symbol, 0Dh
+    je ifCR_2
     cmp symbol, 0Ah
-    ;je skipLineProcLineEnded
-    ;cmp symbol, 0Dh
-    ;je skipLineProcLineEnded
-    ;cmp symbol, 0h
+    je skipLineProcEnded
+    cmp symbol, 0h
     je skipLineProcEnded
     jmp skipLineProcBegin
+ifCR_2: 
+    call readSymbol
+    cmp symbol, 0Ah
+    je skipLineProcEnded
+    stepBack
 skipLineProcEnded:      
     ret
 skipLineProc endp
@@ -107,9 +135,9 @@ processingArgsNum:
     sub al, '0'
     xchg ax, cx
     mul bl
-    jo emptyArgs  
+    jo emptyArgsM  
     add ax, cx
-    js emptyArgs
+    js emptyArgsM
     xchg ax, cx
     jmp processingArgsNum
 processingArgsNumEnd:
@@ -189,7 +217,10 @@ emptyArgsM:
     outStr emptyArgs
     jmp ended
 fileError:
-    outStr fileDontOpened                              
+    outStr fileDontOpened
+    jmp ended
+basicError:
+    outStr error                              
 ended:
     outStr endedStr
     mov ah, 4Ch
